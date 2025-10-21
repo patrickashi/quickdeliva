@@ -7,6 +7,7 @@ from django.core.mail import send_mail
 from django.conf import settings
 from .models import Order
 from .serializers import OrderSerializer
+import calendar
 
 
 class OrderViewSet(viewsets.ModelViewSet):
@@ -17,10 +18,9 @@ class OrderViewSet(viewsets.ModelViewSet):
         return Order.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
-        # Save order
+        # Save the order first
         order = serializer.save(user=self.request.user)
 
-        # ✅ Compose admin email with order details
         subject = f"New Quickdeliva Order from {order.user.email}"
         message = (
             f"📦 A new order has been placed on Quickdeliva 🚚\n\n"
@@ -40,20 +40,24 @@ class OrderViewSet(viewsets.ModelViewSet):
             subject,
             message,
             settings.DEFAULT_FROM_EMAIL,
-            [settings.ADMIN_EMAIL],  # <-- make sure ADMIN_EMAIL is set in settings.py
+            [settings.ADMIN_EMAIL],
             fail_silently=False,
         )
 
 
 class OrderStatsView(APIView):
+    """
+    Returns monthly order counts for the current user.
+    Ensures the frontend always receives chart-friendly data.
+    """
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        """
-        Always return order counts grouped by month (even if user has only 1 order).
-        """
+        user = request.user
+
+        # Group orders by creation month
         stats = (
-            Order.objects.filter(user=request.user)
+            Order.objects.filter(user=user)
             .annotate(order_month=TruncMonth("created_at"))
             .values("order_month")
             .annotate(total=Count("id"))
@@ -62,11 +66,23 @@ class OrderStatsView(APIView):
 
         results = []
         for row in stats:
-            month_display = row["order_month"].strftime("%b %Y") if row["order_month"] else "Unknown"
-            results.append({
-                "month": month_display,
-                "total": row["total"],
-            })
+            # Defensive month name conversion
+            if row["order_month"]:
+                month_name = calendar.month_abbr[row["order_month"].month]
+                year = row["order_month"].year
+                label = f"{month_name} {year}"
+            else:
+                label = "Unknown"
+
+            results.append({"month": label, "total": row["total"]})
+
+        # ✅ Ensure frontend always receives something
+        if not results:
+            results = [{"month": "No Orders Yet", "total": 0}]
+
+        # ✅ Recharts really needs numeric 'total'
+        results = [
+            {"month": r["month"], "total": int(r.get("total", 0))} for r in results
+        ]
 
         return Response(results)
-    
