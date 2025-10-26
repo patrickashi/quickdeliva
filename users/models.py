@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.utils import timezone
 
 class User(AbstractUser):
     # ✅ keep username (from AbstractUser)
@@ -33,3 +34,14 @@ class Driver(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class ContactMessage(models.Model):
+    name = models.CharField(max_length=120)
+    email = models.EmailField()
+    subject = models.CharField(max_length=255, blank=True)
+    message = models.TextField()
+    created_at = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return f"{self.name} — {self.subject or 'No subject'}"

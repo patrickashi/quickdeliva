@@ -21,6 +21,7 @@ ALLOWED_HOSTS = ["*"]
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",   # vite dev server
     "http://127.0.0.1:5173",   # sometimes vite runs here
+    "http://quickdeliva.com",
 ]
 
 
@@ -139,14 +140,21 @@ SIMPLE_JWT = {
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
 
+FRONTEND_URL = [
+    "http://localhost:5173",
+    "http://quickdeliva.com"
+]
+
 ADMIN_EMAIL = "contactquickdeliva@gmail.com"
 
-# EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-# EMAIL_HOST = "smtp.gmail.com"
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtp.gmail.com"
 # EMAIL_PORT = 587
 # EMAIL_USE_TLS = True
-# EMAIL_HOST_USER = "Patrickpeko@gmail.com"
-# EMAIL_HOST_PASSWORD = "jrdg mrve ihno mmph"
-# DEFAULT_FROM_EMAIL = "Quickdeliva <Patrickpeko@gmail.com>"
+EMAIL_PORT = 465
+EMAIL_USE_SSL = True
+EMAIL_HOST_USER = "contactquickdeliva@gmail.com"
+EMAIL_HOST_PASSWORD = "cbaw bsnp byvk apzs"
+DEFAULT_FROM_EMAIL = "Quickdeliva <contactquickdeliva@gmail.com>"
 
-EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+# EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"

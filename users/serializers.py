@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import User, Driver
 from django.contrib.auth import get_user_model
+from .models import ContactMessage
 
 User = get_user_model()
 
@@ -37,3 +38,8 @@ class DriverSerializer(serializers.ModelSerializer):
     class Meta:
         model = Driver
         fields = "__all__"
+
+class ContactMessageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ContactMessage
+        fields = ["id", "name", "email", "subject", "message", "created_at"]

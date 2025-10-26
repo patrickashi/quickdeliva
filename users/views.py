@@ -14,6 +14,16 @@ from orders.models import Order
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .auth_serializers import CustomTokenObtainPairSerializer
 
+from django.contrib.auth.tokens import default_token_generator
+from django.contrib.auth import get_user_model
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
+from rest_framework import status, permissions
+from django.utils.http import urlsafe_base64_decode
+
+from .models import ContactMessage
+from .serializers import ContactMessageSerializer
+
      
 
 # Register new user & send verification code
@@ -103,3 +113,78 @@ class AvailableDriversView(APIView):
 
 class CustomLoginView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
+
+# password reset 
+User = get_user_model()
+
+class PasswordResetRequestView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        email = request.data.get("email")
+        if not email:
+            return Response({"error": "Email required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            # Pretend success to prevent email enumeration
+            return Response({"detail": "If an account exists, a reset email has been sent."})
+
+        token = default_token_generator.make_token(user)
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        reset_url = f"{settings.FRONTEND_URL}/reset-password/{uid}/{token}"
+
+        send_mail(
+            "Password Reset Request – Quickdeliva",
+            f"Click the link below to reset your password:\n{reset_url}",
+            settings.DEFAULT_FROM_EMAIL,
+            [email],
+            fail_silently=False,
+        )
+
+        return Response({"detail": "Password reset email sent."}, status=status.HTTP_200_OK)
+    
+# passwordresetconfirmation
+User = get_user_model()
+
+class PasswordResetConfirmView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        uidb64 = request.data.get("uid")
+        token = request.data.get("token")
+        new_password = request.data.get("password")
+
+        if not (uidb64 and token and new_password):
+            return Response({"error": "Missing parameters"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            uid = urlsafe_base64_decode(uidb64).decode()
+            user = User.objects.get(pk=uid)
+        except Exception:
+            return Response({"error": "Invalid link"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not default_token_generator.check_token(user, token):
+            return Response({"error": "Invalid or expired token"}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.set_password(new_password)
+        user.save()
+        return Response({"detail": "Password reset successful"}, status=status.HTTP_200_OK)
+    
+class ContactMessageCreateView(generics.CreateAPIView):
+    """Accepts contact form submissions"""
+    queryset = ContactMessage.objects.all()
+    serializer_class = ContactMessageSerializer
+    permission_classes = [permissions.AllowAny]  # anyone can submit
+
+    def perform_create(self, serializer):
+        msg = serializer.save()
+        # OPTIONAL: send admin notification
+        send_mail(
+            f"📩 New Contact Message from {msg.name}",
+            f"From: {msg.name} <{msg.email}>\n\nSubject: {msg.subject}\n\nMessage:\n{msg.message}",
+            settings.DEFAULT_FROM_EMAIL,
+            [settings.ADMIN_EMAIL],
+            fail_silently=True,
+        )

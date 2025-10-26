@@ -1,5 +1,6 @@
 from django.contrib import admin
 from .models import Order
+from .models import OrderLocation
 
 class OrderAdmin(admin.ModelAdmin):
     list_display = (
@@ -15,3 +16,4 @@ class OrderAdmin(admin.ModelAdmin):
     list_filter = ("status", "preferred_vehicle")
 
 admin.site.register(Order, OrderAdmin)
+admin.site.register(OrderLocation)

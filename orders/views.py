@@ -1,4 +1,4 @@
-from rest_framework import viewsets, permissions
+from rest_framework import viewsets, permissions, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.db.models.functions import TruncMonth
@@ -8,6 +8,8 @@ from django.conf import settings
 from .models import Order
 from .serializers import OrderSerializer
 import calendar
+from .models import OrderLocation
+from .serializers import OrderLocationSerializer
 
 
 class OrderViewSet(viewsets.ModelViewSet):
@@ -21,8 +23,11 @@ class OrderViewSet(viewsets.ModelViewSet):
         # Save the order first
         order = serializer.save(user=self.request.user)
 
-        subject = f"New Quickdeliva Order from {order.user.email}"
-        message = (
+        # --------------------------------------------
+        # 📬 1️⃣  Send internal admin notification
+        # --------------------------------------------
+        admin_subject = f"New Quickdeliva Order from {order.user.email}"
+        admin_message = (
             f"📦 A new order has been placed on Quickdeliva 🚚\n\n"
             f"Customer: {order.user.username} ({order.user.email})\n"
             f"Phone: {order.user.phone_number}\n"
@@ -35,15 +40,43 @@ class OrderViewSet(viewsets.ModelViewSet):
             f"Special Instructions: {order.special_instructions or 'None'}\n\n"
             f"Order Status: {order.status}\n"
         )
-
         send_mail(
-            subject,
-            message,
+            admin_subject,
+            admin_message,
             settings.DEFAULT_FROM_EMAIL,
             [settings.ADMIN_EMAIL],
             fail_silently=False,
         )
 
+        # --------------------------------------------
+        # 📧 2️⃣  Send confirmation to the customer
+        # --------------------------------------------
+        user_subject = "Your Quickdeliva Order Has Been Received 🚚"
+        user_message = (
+            f"Hi {order.user.username},\n\n"
+            f"Thank you for placing an order with Quickdeliva!\n\n"
+            f"We have received your request and our team is already "
+            f"processing it. You’ll get another update once your package "
+            f"is out for delivery.\n\n"
+            f"🧾 Order Summary:\n"
+            f"Pickup Address: {order.pickup_address}\n"
+            f"Delivery Address: {order.delivery_address}\n"
+            f"Preferred Vehicle: {order.preferred_vehicle}\n"
+            f"Delivery Date: {order.delivery_date} at {order.delivery_time}\n"
+            f"Status: {order.status}\n\n"
+            f"If any detail above is incorrect, reply to this email or "
+            f"contact our support via contactquickdeliva@gmail.com.\n\n"
+            f"— The Quickdeliva Team"
+        )
+        send_mail(
+            user_subject,
+            user_message,
+            settings.DEFAULT_FROM_EMAIL,
+            [order.user.email],
+            fail_silently=True,  # safe if customer's email misconfigured
+        )
+
+        # You could also return "order" or trigger analytics here if needed.
 
 class OrderStatsView(APIView):
     """
@@ -86,3 +119,16 @@ class OrderStatsView(APIView):
         ]
 
         return Response(results)
+    
+class OrderLocationView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, order_id):
+        try:
+            order = Order.objects.get(id=order_id, user=request.user)
+            location = order.location
+        except (Order.DoesNotExist, OrderLocation.DoesNotExist):
+            return Response({"error": "Location not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        data = OrderLocationSerializer(location).data
+        return Response(data)

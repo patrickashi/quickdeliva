@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Order
+from .models import OrderLocation
 
 
 class OrderSerializer(serializers.ModelSerializer):
@@ -16,3 +17,8 @@ class OrderSerializer(serializers.ModelSerializer):
 class OrderStatsSerializer(serializers.Serializer):
     month = serializers.CharField()
     total = serializers.IntegerField()
+
+class OrderLocationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OrderLocation
+        fields = ["latitude", "longitude", "updated_at"]

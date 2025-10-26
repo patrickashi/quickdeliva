@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import Driver, User
+from .models import Driver, User, ContactMessage
 
 class CustomUserAdmin(BaseUserAdmin):
     # Show these fields in admin list view
@@ -28,3 +28,9 @@ class CustomUserAdmin(BaseUserAdmin):
 
 admin.site.register(User, CustomUserAdmin)
 admin.site.register(Driver)  # Register Driver model as well
+
+@admin.register(ContactMessage)
+class ContactMessageAdmin(admin.ModelAdmin):
+    list_display = ("name", "email", "subject", "created_at")
+    search_fields = ("name", "email", "subject")
+    ordering = ("-created_at",)
