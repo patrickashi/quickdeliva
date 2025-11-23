@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import Order
 from .models import OrderLocation
+from .models import Review
 
 
 class OrderSerializer(serializers.ModelSerializer):
@@ -22,3 +23,8 @@ class OrderLocationSerializer(serializers.ModelSerializer):
     class Meta:
         model = OrderLocation
         fields = ["latitude", "longitude", "updated_at"]
+
+class ReviewSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Review
+        fields = ["id", "name", "rating", "comment", "created_at"]

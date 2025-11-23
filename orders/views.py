@@ -1,4 +1,5 @@
 from rest_framework import viewsets, permissions, status
+from rest_framework import generics
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.db.models.functions import TruncMonth
@@ -10,6 +11,8 @@ from .serializers import OrderSerializer
 import calendar
 from .models import OrderLocation
 from .serializers import OrderLocationSerializer
+from .models import Review
+from .serializers import ReviewSerializer
 
 
 class OrderViewSet(viewsets.ModelViewSet):
@@ -132,3 +135,12 @@ class OrderLocationView(APIView):
 
         data = OrderLocationSerializer(location).data
         return Response(data)
+    
+
+
+# reviews
+class ReviewListCreateView(generics.ListCreateAPIView):
+    queryset = Review.objects.all()
+    serializer_class = ReviewSerializer
+    authentication_classes = []    
+    permission_classes = [permissions.AllowAny]  # anyone can view/post

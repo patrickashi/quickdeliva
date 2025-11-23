@@ -65,3 +65,17 @@ class OrderLocation(models.Model):
     latitude = models.FloatField()
     longitude = models.FloatField()
     updated_at = models.DateTimeField(auto_now=True)
+
+# reviews
+class Review(models.Model):
+    # user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="reviews")
+    name = models.CharField(max_length=100)
+    rating = models.PositiveSmallIntegerField(default=5)
+    comment = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.name} – {self.rating}★"
